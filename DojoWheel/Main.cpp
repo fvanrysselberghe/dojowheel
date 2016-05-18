@@ -2,20 +2,35 @@
 #include <iostream>
 #include "Main.h"
 
-int WinMain()
+#define FRAMES_PER_SECOND 50
+
+int main(int argc, char *argv[])
 {
 	sf::Image image;
-	if (!image.loadFromFile("Example.png"))
-		return false;
+	if (argc != 2)
+	{
+		if (!image.loadFromFile("Example.png"))
+			return false;
+	}
+	else
+	{
+		if (!image.loadFromFile(argv[1]))
+			return false;
+	}
 
 	auto scannedImage = asDotImage(image);
 	auto dotImageView = createView(scannedImage);
 
 	//Initialize
 	sf::RenderWindow window(sf::VideoMode(400, 400), "DojoWheel");
-	window.setFramerateLimit(60);
 
 	short selectedLine = 0;
+
+	auto timePerGameTick = sf::seconds(1.0f / FRAMES_PER_SECOND);
+
+	auto clock = sf::Clock{};
+	auto elapsed = sf::Time::Zero;
+
 	while (window.isOpen())
 	{
 		sf::Event event;
@@ -25,10 +40,16 @@ int WinMain()
 				window.close();
 		}
 
-		//Update
-		fadeLines(dotImageView, selectedLine);
+		elapsed += clock.restart();
 
-		selectedLine = selectedLine + 1 < dotImageView.size() ? ++selectedLine : 0;
+		//Update
+		while (elapsed > timePerGameTick)
+		{
+			elapsed -= timePerGameTick;
+			
+			fadeLines(dotImageView, selectedLine);
+			selectedLine = selectedLine + 1 < dotImageView.size() ? ++selectedLine : 0;
+		}
 		
 		render(window, dotImageView);
 	}
@@ -181,7 +202,7 @@ void makeMoreTransparent(std::vector<sf::CircleShape> &line)
 	for (auto &pixel : line)
 	{
 		auto color = pixel.getFillColor();
-		color.a -= 20;
+		color.a = color.a > 20? color.a - 20: 0;
 
 		pixel.setFillColor(color);
 	}
